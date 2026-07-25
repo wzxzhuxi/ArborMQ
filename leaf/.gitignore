@@ -1,0 +1,4 @@
+build/
+*.o
+test_leaf
+leaf_cli
