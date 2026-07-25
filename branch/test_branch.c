@@ -1,8 +1,8 @@
 /*
- * test_tree.c — Unit tests for tree.h MQTT broker
+ * test_branch.c — Unit tests for branch.h MQTT broker
  *
- * Build:  cc -std=c99 -o test_tree test_tree.c
- * Run:    ./test_tree
+ * Build:  cc -std=c99 -o test_branch test_branch.c
+ * Run:    ./test_branch
  */
 #define BRANCH_IMPLEMENTATION
 #include "branch.h"
@@ -327,7 +327,7 @@ TEST(dispatch_pingreq) {
 }
 
 int main(void) {
-    printf("\n=== tree.h unit tests ===\n\n");
+    printf("\n=== branch.h unit tests ===\n\n");
 
     printf("Topic matching:\n");
     RUN(match_exact);

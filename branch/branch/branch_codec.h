@@ -15,46 +15,46 @@ static void     branch__forward(branch_t *t, int from_ci, const char *topic,
  * MQTT util: read/write helpers + remaining-length codec
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-static int tr__read_u8(const uint8_t *b, int off, int len, uint8_t *o) {
+static int branch__read_u8(const uint8_t *b, int off, int len, uint8_t *o) {
     if (off >= len) return -1; *o = b[off]; return off + 1;
 }
-static int tr__read_u16(const uint8_t *b, int off, int len, uint16_t *o) {
+static int branch__read_u16(const uint8_t *b, int off, int len, uint16_t *o) {
     if (off + 1 >= len) return -1;
     *o = ((uint16_t)b[off] << 8) | b[off + 1]; return off + 2;
 }
-static int tr__read_str(const uint8_t *b, int off, int len,
+static int branch__read_str(const uint8_t *b, int off, int len,
                         const uint8_t **s, uint16_t *slen) {
     uint16_t n;
-    if ((off = tr__read_u16(b, off, len, &n)) < 0) return -1;
+    if ((off = branch__read_u16(b, off, len, &n)) < 0) return -1;
     if (off + n > len) return -1;
     *s = b + off; *slen = n; return off + n;
 }
-static int tr__read_str_copy(const uint8_t *b, int off, int len,
+static int branch__read_str_copy(const uint8_t *b, int off, int len,
                              char *dst, int dst_max) {
     const uint8_t *s; uint16_t slen;
-    if ((off = tr__read_str(b, off, len, &s, &slen)) < 0) return -1;
+    if ((off = branch__read_str(b, off, len, &s, &slen)) < 0) return -1;
     int n = slen < dst_max - 1 ? slen : dst_max - 1;
     memcpy(dst, s, n); dst[n] = '\0'; return off;
 }
 
-static void tr__write_u8(uint8_t *b, int *off, uint8_t v)    { b[(*off)++] = v; }
-static void tr__write_u16(uint8_t *b, int *off, uint16_t v) {
+static void branch__write_u8(uint8_t *b, int *off, uint8_t v)    { b[(*off)++] = v; }
+static void branch__write_u16(uint8_t *b, int *off, uint16_t v) {
     b[(*off)++] = (uint8_t)(v >> 8); b[(*off)++] = (uint8_t)(v & 0xFF);
 }
-static void tr__write_bytes(uint8_t *b, int *off, const uint8_t *d, uint16_t n) {
-    tr__write_u16(b, off, n);
+static void branch__write_bytes(uint8_t *b, int *off, const uint8_t *d, uint16_t n) {
+    branch__write_u16(b, off, n);
     if (n) { memcpy(b + *off, d, n); *off += n; }
 }
-static void tr__write_str(uint8_t *b, int *off, const char *s) {
-    tr__write_bytes(b, off, (const uint8_t *)s, (uint16_t)strlen(s));
+static void branch__write_str(uint8_t *b, int *off, const char *s) {
+    branch__write_bytes(b, off, (const uint8_t *)s, (uint16_t)strlen(s));
 }
 
-static int tr__encode_remaining(uint32_t val, uint8_t *out) {
+static int branch__encode_remaining(uint32_t val, uint8_t *out) {
     int n = 0;
     do { out[n++] = (uint8_t)(val & 0x7F) | ((val > 0x7F) ? 0x80 : 0); val >>= 7; } while (val);
     return n;
 }
-static int tr__decode_remaining(const uint8_t *b, int len, uint32_t *out) {
+static int branch__decode_remaining(const uint8_t *b, int len, uint32_t *out) {
     uint32_t v = 0; int i;
     for (i = 0; i < 4 && i < len; i++) { v |= (uint32_t)(b[i] & 0x7F) << (7*i); if (!(b[i] & 0x80)) break; }
     *out = v;
@@ -62,9 +62,9 @@ static int tr__decode_remaining(const uint8_t *b, int len, uint32_t *out) {
     return i + 1;
 }
 
-static int tr__fhdr(uint8_t *b, uint8_t type, uint8_t flags, uint32_t rem) {
-    int off = 0; tr__write_u8(b, &off, (uint8_t)((type << 4) | (flags & 0x0F)));
-    off += tr__encode_remaining(rem, b + off); return off;
+static int branch__fhdr(uint8_t *b, uint8_t type, uint8_t flags, uint32_t rem) {
+    int off = 0; branch__write_u8(b, &off, (uint8_t)((type << 4) | (flags & 0x0F)));
+    off += branch__encode_remaining(rem, b + off); return off;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -73,10 +73,10 @@ static int tr__fhdr(uint8_t *b, uint8_t type, uint8_t flags, uint32_t rem) {
 
 static int branch__enc_connack(uint8_t *buf, uint8_t session_present, uint8_t rc) {
     int off = 0;
-    tr__write_u8(buf, &off, (uint8_t)(T_PKT_CONNACK << 4));
-    tr__write_u8(buf, &off, 2);
-    tr__write_u8(buf, &off, session_present);
-    tr__write_u8(buf, &off, rc);
+    branch__write_u8(buf, &off, (uint8_t)(T_PKT_CONNACK << 4));
+    branch__write_u8(buf, &off, 2);
+    branch__write_u8(buf, &off, session_present);
+    branch__write_u8(buf, &off, rc);
     return off;
 }
 
@@ -87,32 +87,32 @@ static int branch__enc_publish(uint8_t *buf, const char *topic, const uint8_t *p
     uint32_t rem = 2 + tl + plen;
     if (qos > 0) rem += 2;
     uint8_t f = (uint8_t)((qos & 0x03) << 1) | (retain ? 1 : 0);
-    off += tr__fhdr(buf + off, T_PKT_PUBLISH, f, rem);
-    tr__write_str(buf, &off, topic);
-    if (qos > 0) tr__write_u16(buf, &off, pid);
+    off += branch__fhdr(buf + off, T_PKT_PUBLISH, f, rem);
+    branch__write_str(buf, &off, topic);
+    if (qos > 0) branch__write_u16(buf, &off, pid);
     if (plen > 0) { memcpy(buf + off, payload, plen); off += plen; }
     return off;
 }
 
 static int branch__enc_suback(uint8_t *buf, uint16_t pid, uint8_t rc) {
     int off = 0;
-    off += tr__fhdr(buf + off, T_PKT_SUBACK, 0, 3);
-    tr__write_u16(buf, &off, pid);
-    tr__write_u8(buf, &off, rc);
+    off += branch__fhdr(buf + off, T_PKT_SUBACK, 0, 3);
+    branch__write_u16(buf, &off, pid);
+    branch__write_u8(buf, &off, rc);
     return off;
 }
 
 static int branch__enc_unsuback(uint8_t *buf, uint16_t pid) {
     int off = 0;
-    off += tr__fhdr(buf + off, T_PKT_UNSUBACK, 0, 2);
-    tr__write_u16(buf, &off, pid);
+    off += branch__fhdr(buf + off, T_PKT_UNSUBACK, 0, 2);
+    branch__write_u16(buf, &off, pid);
     return off;
 }
 
 static int branch__enc_ack(uint8_t *buf, uint8_t type, uint16_t pid) {
     int off = 0;
-    off += tr__fhdr(buf + off, type, 0, 2);
-    tr__write_u16(buf, &off, pid);
+    off += branch__fhdr(buf + off, type, 0, 2);
+    branch__write_u16(buf, &off, pid);
     return off;
 }
 
@@ -134,7 +134,7 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     if (pkt_len < 2) return -1;
     type = (p[0] >> 4) & 0x0F;
     flags = p[0] & 0x0F;
-    r = tr__decode_remaining(p + 1, pkt_len - 1, &rem_len);
+    r = branch__decode_remaining(p + 1, pkt_len - 1, &rem_len);
     if (r < 0) return -1;
     off = 1 + r;
 
@@ -143,16 +143,16 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     case T_PKT_CONNECT: {
         /* Protocol name */
         const uint8_t *proto; uint16_t plen;
-        if ((off = tr__read_str(p, off, pkt_len, &proto, &plen)) < 0) return -1;
+        if ((off = branch__read_str(p, off, pkt_len, &proto, &plen)) < 0) return -1;
         uint8_t proto_ok = (plen == 4 && memcmp(proto, "MQTT", 4) == 0);
 
         /* Protocol level */
         uint8_t level;
-        if ((off = tr__read_u8(p, off, pkt_len, &level)) < 0) return -1;
+        if ((off = branch__read_u8(p, off, pkt_len, &level)) < 0) return -1;
 
         /* Connect flags */
         uint8_t cf;
-        if ((off = tr__read_u8(p, off, pkt_len, &cf)) < 0) return -1;
+        if ((off = branch__read_u8(p, off, pkt_len, &cf)) < 0) return -1;
         uint8_t clean_session = (cf >> 1) & 1;
         uint8_t will_flag  = (cf >> 2) & 1;
         uint8_t will_qos   = (cf >> 3) & 3;
@@ -162,18 +162,18 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
 
         /* Keep alive */
         uint16_t ka;
-        if ((off = tr__read_u16(p, off, pkt_len, &ka)) < 0) return -1;
+        if ((off = branch__read_u16(p, off, pkt_len, &ka)) < 0) return -1;
 
         /* Client ID */
-        if ((off = tr__read_str_copy(p, off, pkt_len,
+        if ((off = branch__read_str_copy(p, off, pkt_len,
                                      c->client_id, BRANCH_MAX_CLIENT_ID)) < 0) return -1;
 
         /* Will */
         if (will_flag) {
-            if ((off = tr__read_str_copy(p, off, pkt_len,
+            if ((off = branch__read_str_copy(p, off, pkt_len,
                                          c->will_topic, BRANCH_MAX_TOPIC)) < 0) return -1;
             const uint8_t *wp; uint16_t wpl;
-            if ((off = tr__read_str(p, off, pkt_len, &wp, &wpl)) < 0) return -1;
+            if ((off = branch__read_str(p, off, pkt_len, &wp, &wpl)) < 0) return -1;
             c->will_payload_len = wpl < BRANCH_MAX_WILL_PAYLOAD ? wpl : BRANCH_MAX_WILL_PAYLOAD;
             memcpy(c->will_payload, wp, c->will_payload_len);
             c->will_qos = will_qos;
@@ -183,13 +183,13 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
 
         /* Username */
         if (has_user) {
-            if ((off = tr__read_str_copy(p, off, pkt_len, c->username, 64)) < 0) return -1;
+            if ((off = branch__read_str_copy(p, off, pkt_len, c->username, 64)) < 0) return -1;
         }
 
         /* Password */
         char password[64] = {0};
         if (has_pass) {
-            if ((off = tr__read_str_copy(p, off, pkt_len, password, 64)) < 0) return -1;
+            if ((off = branch__read_str_copy(p, off, pkt_len, password, 64)) < 0) return -1;
         }
 
         /* Validate */
@@ -237,11 +237,11 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     case T_PKT_PUBLISH: {
         uint8_t qos = (flags >> 1) & 3, retain = flags & 1;
         const uint8_t *topic; uint16_t topic_len;
-        if ((off = tr__read_str(p, off, pkt_len, &topic, &topic_len)) < 0) return -1;
+        if ((off = branch__read_str(p, off, pkt_len, &topic, &topic_len)) < 0) return -1;
 
         uint16_t pid = 0;
         if (qos > 0) {
-            if ((off = tr__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
+            if ((off = branch__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
         }
 
         /* Duplicate detection for QOS 2 */
@@ -289,7 +289,7 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     }
 
     case T_PKT_PUBACK: {
-        uint16_t pid; if ((off = tr__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
+        uint16_t pid; if ((off = branch__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
         /* Clear QOS 1 outgoing tracking */
         for (int qi = 0; qi < BRANCH_MAX_PENDING; qi++)
             if (c->qos2[qi].pid == pid && c->qos2[qi].state == Q2_OUT_PUBLISH_SENT)
@@ -298,7 +298,7 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     }
 
     case T_PKT_PUBREC: {
-        uint16_t pid; if ((off = tr__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
+        uint16_t pid; if ((off = branch__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
         /* QOS 2 outgoing: PUBREC received → send PUBREL */
         for (int qi = 0; qi < BRANCH_MAX_PENDING; qi++) {
             if (c->qos2[qi].pid == pid && c->qos2[qi].state == Q2_OUT_PUBLISH_SENT) {
@@ -313,7 +313,7 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     }
 
     case T_PKT_PUBREL: {
-        uint16_t pid; if ((off = tr__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
+        uint16_t pid; if ((off = branch__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
         /* QOS 2 incoming: PUBREL received → send PUBCOMP, then forward stored message */
         for (int qi = 0; qi < BRANCH_MAX_PENDING; qi++) {
             if (c->qos2[qi].pid == pid && c->qos2[qi].state == Q2_IN_PUBREC_SENT) {
@@ -330,7 +330,7 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     }
 
     case T_PKT_PUBCOMP: {
-        uint16_t pid; if ((off = tr__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
+        uint16_t pid; if ((off = branch__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
         /* QOS 2 outgoing complete */
         for (int qi = 0; qi < BRANCH_MAX_PENDING; qi++)
             if (c->qos2[qi].pid == pid && c->qos2[qi].state == Q2_OUT_PUBREL_SENT)
@@ -339,15 +339,15 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
     }
 
     case T_PKT_SUBSCRIBE: {
-        uint16_t pid; if ((off = tr__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
+        uint16_t pid; if ((off = branch__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
 
         /* Build SUBACK payload: one return code per topic filter */
         uint8_t rcs[32]; uint8_t rc_count = 0;
         while (off < pkt_len && rc_count < 32) {
             const uint8_t *tf; uint16_t tfl;
-            if ((off = tr__read_str(p, off, pkt_len, &tf, &tfl)) < 0) break;
+            if ((off = branch__read_str(p, off, pkt_len, &tf, &tfl)) < 0) break;
             uint8_t rqos;
-            if ((off = tr__read_u8(p, off, pkt_len, &rqos)) < 0) break;
+            if ((off = branch__read_u8(p, off, pkt_len, &rqos)) < 0) break;
 
             int si = branch__find_free_sub(t);
             if (si >= 0 && rc_count < BRANCH_MAX_PENDING) {
@@ -376,19 +376,19 @@ static int branch__dispatch(branch_t *t, int ci, int pkt_len) {
         {
             uint8_t sa[BRANCH_BUF_SIZE]; int off2 = 0;
             uint32_t rem = 2 + rc_count;
-            off2 += tr__fhdr(sa + off2, T_PKT_SUBACK, 0, rem);
-            tr__write_u16(sa, &off2, pid);
-            for (int i = 0; i < rc_count; i++) tr__write_u8(sa, &off2, rcs[i]);
+            off2 += branch__fhdr(sa + off2, T_PKT_SUBACK, 0, rem);
+            branch__write_u16(sa, &off2, pid);
+            for (int i = 0; i < rc_count; i++) branch__write_u8(sa, &off2, rcs[i]);
             branch__queue_and_flush(c, sa, (uint32_t)off2);
         }
         break;
     }
 
     case T_PKT_UNSUBSCRIBE: {
-        uint16_t pid; if ((off = tr__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
+        uint16_t pid; if ((off = branch__read_u16(p, off, pkt_len, &pid)) < 0) return -1;
         while (off < pkt_len) {
             const uint8_t *tf; uint16_t tfl;
-            if ((off = tr__read_str(p, off, pkt_len, &tf, &tfl)) < 0) break;
+            if ((off = branch__read_str(p, off, pkt_len, &tf, &tfl)) < 0) break;
             /* Remove matching subscriptions */
             char tf_buf[BRANCH_MAX_TOPIC];
             {

@@ -180,7 +180,7 @@ static int branch__client_recv(branch_t *t, int ci) {
     /* Dispatch complete packets */
     while (c->recv_len >= 2) {
         uint32_t rem_len;
-        int rl = tr__decode_remaining(c->recv_buf + 1, 4, &rem_len);
+        int rl = branch__decode_remaining(c->recv_buf + 1, 4, &rem_len);
         if (rl < 0) { c->recv_len = 0; return -1; }
         uint32_t total = 1 + (uint32_t)rl + rem_len;
         if (total > BRANCH_BUF_SIZE) { c->recv_len = 0; return -1; }
@@ -238,13 +238,13 @@ static void branch__check_keepalive(branch_t *t) {
  * Public API
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-static branch_t g_tree;
+static branch_t g_branch;
 static int    g_branch_in_use = 0;
 
 branch_t* branch_create(const branch_config_t *cfg) {
     if (g_branch_in_use) return NULL;
     g_branch_in_use = 1;
-    branch_t *t = &g_tree;
+    branch_t *t = &g_branch;
     memset(t, 0, sizeof(*t));
     t->cfg = *cfg;
     if (!t->cfg.port) t->cfg.port = 1883;

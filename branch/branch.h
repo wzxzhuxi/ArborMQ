@@ -1,5 +1,5 @@
 /*
- * tree.h — MQTT 3.1.1 Broker (single-header, zero-allocation)
+ * branch.h — MQTT 3.1.1 Broker (single-header, zero-allocation)
  *
  * Usage:
  *   #define BRANCH_IMPLEMENTATION

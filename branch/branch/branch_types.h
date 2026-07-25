@@ -1,5 +1,5 @@
 #pragma once
-/* tree.h public types (branch_t, branch_config_t, macros) are visible via BRANCH_IMPLEMENTATION */
+/* branch.h public types (branch_t, branch_config_t, macros) are visible via BRANCH_IMPLEMENTATION */
 
 #include <arpa/inet.h>
 #include <errno.h>

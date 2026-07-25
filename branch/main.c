@@ -1,5 +1,5 @@
 /*
- * branch_broker — Standalone MQTT 3.1.1 broker using tree.h
+ * branch_broker — Standalone MQTT 3.1.1 broker using branch.h
  *
  * Build:  cc -std=c99 -Os -o branch_broker main.c
  * Usage:  ./branch_broker [port]
