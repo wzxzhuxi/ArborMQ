@@ -18,13 +18,13 @@ ArborMQ/
 │   └── main.c          Interactive CLI demo
 │
 └── branch/               MQTT Broker
-    ├── tree.h          Public entry point
+    ├── branch.h          Public entry point
     ├── branch/           Internal modules
-    │   ├── tree_types.h    Types + platform helpers
-    │   ├── tree_codec.h    MQTT protocol codec
-    │   ├── tree_match.h    Topic wildcard matching
+    │   ├── branch_types.h    Types + platform helpers
+    │   ├── branch_codec.h    MQTT protocol codec
+    │   ├── branch_match.h    Topic wildcard matching
     │   └── branch_broker.h   Subscription routing + forwarding
-    ├── test_tree.c     16 unit tests
+    ├── test_branch.c     16 unit tests
     └── main.c          Standalone broker binary
 ```
 
@@ -33,7 +33,7 @@ ArborMQ/
 ### Branch
 
 ```bash
-cd tree && mkdir build && cd build
+cd branch && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel && make
 ./branch_broker 1883
 ```
@@ -65,7 +65,7 @@ int main() {
 
 ## Features
 
-| | leaf | tree |
+| | leaf | branch |
 |---|---|---|
 | QOS 0 / 1 / 2 | [+] | [+] |
 | Retained messages | [+] | [+] |
@@ -81,8 +81,8 @@ int main() {
 
 All 14 MQTT 3.1.1 packet types:
 
-| Packet | leaf | tree |
-|--------|------|------|
+| Packet | leaf | branch |
+|--------|------|--------|
 | CONNECT | Encode | Decode + validate |
 | CONNACK | Decode | Encode |
 | PUBLISH QOS 0/1/2 | Encode/decode | Encode/decode + forward |
@@ -107,7 +107,7 @@ Override defaults with `#define` before include. See subdirectory READMEs for de
 
 ```bash
 cd leaf/build && cmake .. && make && ./test_leaf   # 20 tests
-cd branch/build && cmake .. && make && ./test_tree   # 16 tests
+cd branch/build && cmake .. && make && ./test_branch   # 16 tests
 ```
 
 ## License

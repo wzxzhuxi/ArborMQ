@@ -18,13 +18,13 @@ ArborMQ/
 │   └── main.c          CLI 交互式 demo
 │
 └── branch/               MQTT Broker（branch — 枝状路由）
-    ├── tree.h          公共入口
+    ├── branch.h          公共入口
     ├── branch/           内部模块
-    │   ├── tree_types.h    类型定义 + 平台抽象
-    │   ├── tree_codec.h    MQTT 协议编解码
-    │   ├── tree_match.h    通配符匹配 (+ / #)
+    │   ├── branch_types.h    类型定义 + 平台抽象
+    │   ├── branch_codec.h    MQTT 协议编解码
+    │   ├── branch_match.h    通配符匹配 (+ / #)
     │   └── branch_broker.h   订阅路由 + 消息转发
-    ├── test_tree.c     16 项单元测试
+    ├── test_branch.c     16 项单元测试
     └── main.c          独立 broker 入口
 ```
 
@@ -33,7 +33,7 @@ ArborMQ/
 ### Branch
 
 ```bash
-cd tree && mkdir build && cd build
+cd branch && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel && make
 ./branch_broker 1883
 ```
@@ -70,7 +70,7 @@ int main() {
 
 ## 功能
 
-| | leaf | tree |
+| | leaf | branch |
 |---|---|---|
 | QOS 0 / 1 / 2 | [+] | [+] |
 | Retain 保留消息 | [+] | [+] |
@@ -86,8 +86,8 @@ int main() {
 
 MQTT 3.1.1 全部 14 种报文类型：
 
-| 报文 | leaf | tree |
-|------|------|------|
+| 报文 | leaf | branch |
+|------|--------|--------|
 | CONNECT | 编码 | 解码 + 验证 |
 | CONNACK | 解码 | 编码 |
 | PUBLISH QOS 0/1/2 | 编解码 | 编解码 + 转发 |
@@ -112,7 +112,7 @@ MQTT 3.1.1 全部 14 种报文类型：
 
 ```bash
 cd leaf/build && cmake .. && make && ./test_leaf   # 20 tests
-cd branch/build && cmake .. && make && ./test_tree   # 16 tests
+cd branch/build && cmake .. && make && ./test_branch   # 16 tests
 ```
 
 ## 许可证
